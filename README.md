@@ -46,7 +46,7 @@ Python 3.9 or higher installed.
 Clone the repository and install the required dependencies using Python's module runner:
 
 ```bash
-git clone <your-github-repo-url>
+git clone https://github.com/Ramakrishna7792/Action-pulse-Ai
 cd ActionPulse_AI
 python -m pip install -r requirements.txt
 ```
