@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 import streamlit as st
 import pandas as pd
 from agent import process_transcript
@@ -12,205 +13,295 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling for modern aesthetic
+# Custom Styling for Gemini-inspired Dark Theme
 st.markdown("""
 <style>
-    /* Global Styling */
-    .main {
-        background-color: #0e1117;
-        font-family: 'Inter', sans-serif;
+    /* Main Container */
+    .stApp {
+        background-color: #131314;
+        color: #e3e3e3;
+        font-family: 'Google Sans', 'Inter', sans-serif;
+    }
+
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #1e1f20;
+        border-right: 1px solid #2e2f31;
+    }
+
+    /* Gemini-style Sidebar Buttons */
+    [data-testid="stSidebar"] button[kind="secondary"] {
+        background-color: transparent !important;
+        border: none !important;
+        color: #c4c7c5 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
     }
     
+    [data-testid="stSidebar"] button[kind="primary"] {
+        background-color: #282a2c !important;
+        border: 1px solid #374151 !important;
+        color: #ffffff !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
+    }
+
+    [data-testid="stSidebar"] button:hover {
+        background-color: #2e3034 !important;
+        color: #ffffff !important;
+    }
+
+    /* Popover Menu Styling */
+    [data-testid="stPopover"] button {
+        background: transparent !important;
+        border: none !important;
+        color: #9ca3af !important;
+        padding: 2px 6px !important;
+    }
+    [data-testid="stPopover"] button:hover {
+        color: #ffffff !important;
+    }
+
     /* Header Card */
     .header-card {
-        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        border: 1px solid #374151;
-        padding: 24px;
+        background: linear-gradient(135deg, #1e2022 0%, #17181a 100%);
+        border: 1px solid #2e3034;
+        padding: 20px 24px;
         border-radius: 16px;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     }
     
     .header-title {
-        color: #f9fafb;
-        font-size: 2.2rem;
+        color: #f3f4f6;
+        font-size: 1.8rem;
         font-weight: 700;
-        margin-bottom: 8px;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
+        margin-bottom: 6px;
     }
     
     .header-subtitle {
         color: #9ca3af;
-        font-size: 1.05rem;
+        font-size: 0.95rem;
     }
 
-    /* Summary Card */
+    /* Executive Summary Box */
     .summary-box {
-        background: rgba(30, 58, 138, 0.2);
+        background: rgba(37, 99, 235, 0.15);
         border-left: 4px solid #3b82f6;
-        padding: 16px;
-        border-radius: 8px;
-        color: #e0e7ff;
-        font-size: 1rem;
-        line-height: 1.6;
-        margin-bottom: 20px;
-    }
-
-    /* Action Item Card */
-    .action-card {
-        background-color: #1f2937;
-        border: 1px solid #374151;
-        border-radius: 12px;
         padding: 16px 20px;
-        margin-bottom: 12px;
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    
-    .action-card:hover {
-        border-color: #3b82f6;
+        border-radius: 10px;
+        color: #dbeafe;
+        font-size: 0.98rem;
+        line-height: 1.6;
+        margin-bottom: 16px;
     }
 
-    .action-task {
+    /* Sidebar Headings */
+    .recent-header {
+        font-size: 0.8rem;
         font-weight: 600;
-        color: #f3f4f6;
-        font-size: 1.05rem;
-        margin-bottom: 8px;
+        color: #8e918f;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 14px;
+        margin-bottom: 6px;
     }
 
-    .action-meta {
-        display: flex;
-        gap: 20px;
-        color: #9ca3af;
-        font-size: 0.9rem;
-    }
-
-    .badge-owner {
-        background-color: #374151;
-        color: #60a5fa;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-weight: 500;
-    }
-
-    .badge-date {
-        background-color: #374151;
-        color: #f59e0b;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-weight: 500;
-    }
+    /* Hide default elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize Session State
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+def _clean(v):
+    return v.strip().strip('"').strip("'") if v else ""
 
-if "raw_input" not in st.session_state:
-    st.session_state.raw_input = ""
+# Initialize State Management
+if "chats" not in st.session_state:
+    initial_id = str(uuid.uuid4())
+    st.session_state.chats = {
+        initial_id: {
+            "title": "New Chat",
+            "messages": [],
+            "pinned": False
+        }
+    }
+    st.session_state.current_chat_id = initial_id
 
-# Helper to load sample files safely
-def load_sample(filename):
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as f:
-            st.session_state.raw_input = f.read()
-    else:
-        st.error(f"Sample file {filename} not found.")
+if "api_key" not in st.session_state:
+    st.session_state.api_key = _clean(os.getenv("OPENAI_API_KEY", ""))
 
-# Sidebar Configuration
+if "base_url" not in st.session_state:
+    st.session_state.base_url = _clean(os.getenv("OPENAI_BASE_URL", ""))
+
+if "model_name" not in st.session_state:
+    st.session_state.model_name = _clean(os.getenv("LLM_MODEL", "")) or _clean(os.getenv("OPENAI_MODEL", ""))
+
+if "search_query" not in st.session_state:
+    st.session_state.search_query = ""
+
+# Helper to create a new chat thread
+def start_new_chat():
+    new_id = str(uuid.uuid4())
+    st.session_state.chats[new_id] = {
+        "title": "New Chat",
+        "messages": [],
+        "pinned": False
+    }
+    st.session_state.current_chat_id = new_id
+
+# Ensure active chat exists
+if st.session_state.current_chat_id not in st.session_state.chats:
+    start_new_chat()
+
+current_chat = st.session_state.chats[st.session_state.current_chat_id]
+
+# SIDEBAR (Gemini AI Layout)
 with st.sidebar:
-    st.image("https://img.icons8.com/isometric-headers/100/flash-on.png", width=64)
-    st.title("⚡ ActionPulse AI")
-    st.caption("Automated Meeting Insights & Action Extraction")
+    # 1. Header (No broken image icon)
+    st.markdown("""
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 2px;">
+            <span style="font-size: 1.6rem;">⚡</span>
+            <span style="font-size: 1.35rem; font-weight: 700; color: #f9fafb;">ActionPulse AI</span>
+        </div>
+        <div style="color: #9ca3af; font-size: 0.82rem; margin-bottom: 16px;">
+            Automated Meeting Insights & Action Extraction
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
 
-    st.subheader("📁 Input Source")
-    
-    # File Uploader
-    uploaded_file = st.file_uploader("Upload transcript file (.txt)", type=["txt"])
-    if uploaded_file is not None:
-        st.session_state.raw_input = uploaded_file.read().decode("utf-8")
-        st.success(f"Loaded `{uploaded_file.name}` successfully!")
-
-    st.markdown("**Or pick a pre-loaded sample:**")
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        if st.button("Sample 1 🚀", help="Product Launch Sync", use_container_width=True):
-            load_sample("sample_transcript.txt")
-    with col_s2:
-        if st.button("Sample 2 💼", help="Q3 Budgeting & Hiring", use_container_width=True):
-            load_sample("sample_transcript_2.txt")
-
-    st.markdown("---")
-
-    # API Configuration in Sidebar
-    st.subheader("🔑 API Settings")
-    
-    def _clean(v):
-        return v.strip().strip('"').strip("'") if v else ""
-
-    env_key = _clean(os.getenv("OPENAI_API_KEY", ""))
-    user_api_key = st.text_input(
-        "API Key (OpenAI / OpenRouter / Groq):",
-        type="password",
-        value=env_key,
-        help="Paste your API key here (e.g. Groq key gsk_... or OpenRouter key sk-or-v1-...)."
-    )
-    
-    # Auto-detect defaults based on key type
-    default_base = ""
-    default_model = "gpt-4o-mini"
-    if user_api_key.startswith("gsk_"):
-        default_base = "https://api.groq.com/openai/v1"
-        default_model = "llama-3.3-70b-versatile"
-    elif user_api_key.startswith("sk-or-v1-"):
-        default_base = "https://openrouter.ai/api/v1"
-        default_model = "meta-llama/llama-3.3-70b-instruct:free"
-
-    env_base_url = _clean(os.getenv("OPENAI_BASE_URL", "")) or default_base
-    user_base_url = st.text_input(
-        "Base URL (Optional):",
-        value=env_base_url,
-        placeholder="https://api.groq.com/openai/v1",
-        help="Custom API base URL (e.g., https://api.groq.com/openai/v1 or https://openrouter.ai/api/v1)."
-    )
-
-    env_model = _clean(os.getenv("LLM_MODEL", "")) or _clean(os.getenv("OPENAI_MODEL", "")) or default_model
-    user_model = st.text_input(
-        "Model Name:",
-        value=env_model,
-        placeholder="llama-3.3-70b-versatile",
-        help="Specify the model ID (e.g. llama-3.3-70b-versatile, meta-llama/llama-3.3-70b-instruct:free, gpt-4o-mini)."
-    )
-
-    if user_api_key:
-        st.sidebar.success("✅ API Key configured")
-    else:
-        st.sidebar.warning("⚠️ API Key missing. Enter it above or set in environment.")
-
-    st.markdown("---")
-
-    if st.button("Clear Chat History", type="secondary", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.raw_input = ""
+    # 2. New Chat Button
+    if st.button("📝 New chat", use_container_width=True, type="primary"):
+        start_new_chat()
         st.rerun()
 
-# Main Layout Header
+    # 3. Search Chats
+    search_input = st.text_input("🔍 Search chats", value=st.session_state.search_query, placeholder="Filter conversations...")
+    st.session_state.search_query = search_input
+
+    # 4. Pinned & Recents Lists (Only show chats that have messages)
+    chat_items = list(st.session_state.chats.items())
+    filtered_chats = [
+        (cid, cdata) for cid, cdata in chat_items
+        if len(cdata.get("messages", [])) > 0 and (not search_input.strip() or search_input.lower() in cdata["title"].lower())
+    ]
+
+    pinned_chats = [(cid, cdata) for cid, cdata in filtered_chats if cdata.get("pinned", False)]
+    recent_chats = [(cid, cdata) for cid, cdata in filtered_chats if not cdata.get("pinned", False)]
+
+    def render_chat_item(cid, cdata):
+        is_active = (cid == st.session_state.current_chat_id)
+        is_pinned = cdata.get("pinned", False)
+        title = cdata["title"]
+
+        col_title, col_opts = st.columns([0.82, 0.18])
+        with col_title:
+            btn_type = "primary" if is_active else "secondary"
+            if st.button(title, key=f"nav_{cid}", use_container_width=True, type=btn_type):
+                st.session_state.current_chat_id = cid
+                st.rerun()
+
+        with col_opts:
+            with st.popover("⋮", help="Options"):
+                # Pin / Unpin Option
+                pin_action = "Unpin" if is_pinned else "Pin"
+                if st.button(f"📌 {pin_action}", key=f"pin_act_{cid}", use_container_width=True):
+                    cdata["pinned"] = not is_pinned
+                    st.rerun()
+
+                # Rename Form Option
+                with st.form(key=f"rename_form_{cid}"):
+                    new_t = st.text_input("Rename:", value=title)
+                    if st.form_submit_button("✏️ Save"):
+                        if new_t.strip():
+                            cdata["title"] = new_t.strip()
+                            st.rerun()
+
+                # Delete Option
+                if st.button("🗑️ Delete", key=f"del_act_{cid}", use_container_width=True):
+                    del st.session_state.chats[cid]
+                    if not st.session_state.chats:
+                        start_new_chat()
+                    else:
+                        st.session_state.current_chat_id = list(st.session_state.chats.keys())[0]
+                    st.rerun()
+
+    # Render Pinned Section
+    if pinned_chats:
+        st.markdown('<div class="recent-header">Pinned</div>', unsafe_allow_html=True)
+        for cid, cdata in reversed(pinned_chats):
+            render_chat_item(cid, cdata)
+
+    # Render Recents Section
+    st.markdown('<div class="recent-header">Recents</div>', unsafe_allow_html=True)
+    if recent_chats:
+        for cid, cdata in reversed(recent_chats):
+            render_chat_item(cid, cdata)
+    else:
+        st.caption("No recent conversations.")
+
+    st.markdown("---")
+
+    # 5. Settings Popover / Expander at Left Bottom
+    with st.expander("⚙️ Settings", expanded=False):
+        tab_app, tab_api, tab_fb, tab_about = st.tabs(["Appearance", "API Keys", "Feedback", "About Us"])
+
+        with tab_app:
+            st.write("**Theme:** Dark Mode 🌙")
+            st.caption("Matches Gemini-style modern dark aesthetics.")
+
+        with tab_api:
+            st.markdown("#### API Configuration")
+            new_key = st.text_input("API Key:", value=st.session_state.api_key, type="password", help="OpenAI, Groq (gsk_...), or OpenRouter (sk-or-v1-...) key")
+            new_url = st.text_input("Base URL (Optional):", value=st.session_state.base_url, placeholder="https://api.groq.com/openai/v1")
+            new_model = st.text_input("Model Name:", value=st.session_state.model_name, placeholder="llama-3.3-70b-versatile")
+
+            if st.button("Save Credentials", key="save_creds_btn", use_container_width=True):
+                st.session_state.api_key = _clean(new_key)
+                st.session_state.base_url = _clean(new_url)
+                st.session_state.model_name = _clean(new_model)
+                st.success("API Settings saved!")
+                st.rerun()
+
+        with tab_fb:
+            st.markdown("#### Send Feedback")
+            fb_text = st.text_area("How can we improve ActionPulse AI?", height=80)
+            if st.button("Submit Feedback", key="submit_fb_btn"):
+                if fb_text.strip():
+                    st.success("Thank you for your feedback!")
+
+        with tab_about:
+            st.markdown("#### ActionPulse AI v2.0")
+            st.write("Executes executive summaries and extracts structured action items from transcripts, notes, and paragraphs.")
+
+# MAIN CONTENT AREA
+
+# 1. Header Card
 st.markdown("""
 <div class="header-card">
     <div class="header-title">
         <span>⚡ ActionPulse AI</span>
     </div>
     <div class="header-subtitle">
-        Transform raw, unstructured meeting transcripts into concise executive summaries and structured, actionable tasks.
+        Transform raw, unstructured meeting transcripts, notes, or paragraphs into concise executive summaries and structured action items.
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Render Chat History
-for message in st.session_state.messages:
+# 2. Render Active Chat Messages
+messages = current_chat["messages"]
+
+for message in messages:
     with st.chat_message(message["role"]):
         if message["role"] == "user":
             st.markdown(message["content"])
@@ -223,7 +314,6 @@ for message in st.session_state.messages:
                 st.markdown("### ✅ Extracted Action Items")
                 action_items = data.get("action_items", [])
                 if action_items:
-                    # Table view option
                     df = pd.DataFrame(action_items)
                     st.dataframe(
                         df, 
@@ -236,66 +326,102 @@ for message in st.session_state.messages:
                         use_container_width=True
                     )
 
-                    # Export JSON
                     json_str = json.dumps(data, indent=2)
                     st.download_button(
                         label="📥 Download action_items.json",
                         data=json_str,
                         file_name="action_items.json",
                         mime="application/json",
-                        key=f"dl_{message.get('id', 'default')}"
+                        key=f"dl_{message.get('id', uuid.uuid4())}"
                     )
                 else:
-                    st.info("No action items identified in this transcript.")
+                    st.info("No action items identified in this text.")
 
-# Meeting Input Section
-st.subheader("📝 Transcript Input")
-transcript_text = st.text_area(
-    "Paste transcript content or notes below:",
-    value=st.session_state.raw_input,
-    height=220,
-    placeholder="Alex: Good morning team...\nSarah: Morning Alex..."
-)
+import pypdf
+import docx
 
-submit_clicked = st.button("⚡ Process & Extract Action Items", type="primary", use_container_width=True)
+def extract_file_data(uploaded_file):
+    name = uploaded_file.name.lower()
+    if name.endswith((".txt", ".md")):
+        return uploaded_file.read().decode("utf-8", errors="ignore"), None, None
+    elif name.endswith(".pdf"):
+        reader = pypdf.PdfReader(uploaded_file)
+        text = "\n".join([page.extract_text() or "" for page in reader.pages])
+        return text, None, None
+    elif name.endswith(".docx"):
+        doc = docx.Document(uploaded_file)
+        text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+        return text, None, None
+    elif name.endswith((".png", ".jpg", ".jpeg", ".webp")):
+        mime = "image/jpeg" if name.endswith((".jpg", ".jpeg")) else "image/png"
+        if name.endswith(".webp"):
+            mime = "image/webp"
+        return None, uploaded_file.read(), mime
+    return uploaded_file.read().decode("utf-8", errors="ignore"), None, None
 
-if submit_clicked:
-    if not transcript_text.strip():
-        st.warning("Please provide a meeting transcript first.")
-    elif not user_api_key and not os.getenv("OPENAI_API_KEY"):
-        st.error("Please enter your API key in the sidebar or set the OPENAI_API_KEY environment variable.")
+# 3. File Attachment Bar (Supports TXT, PDF, DOCX, PNG, JPG, WEBP)
+with st.expander("➕ Upload File (.txt, .pdf, .docx, .png, .jpg)", expanded=False):
+    uploaded_file = st.file_uploader(
+        "Attach meeting document, transcript, or notes image:",
+        type=["txt", "md", "pdf", "docx", "png", "jpg", "jpeg", "webp"],
+        key=f"file_up_{st.session_state.current_chat_id}"
+    )
+    file_text, file_img_bytes, file_img_mime = None, None, None
+    if uploaded_file is not None:
+        file_text, file_img_bytes, file_img_mime = extract_file_data(uploaded_file)
+        st.success(f"Attached `{uploaded_file.name}`. Press Enter or click submit in the chat box below.")
+
+# 4. Gemini-Style Chat Input Box (Works with Enter key or Submit button ➔)
+user_prompt = st.chat_input("Enter a meeting transcript, raw notes, or paragraph text...")
+
+# Determine payload
+has_file = (file_text is not None or file_img_bytes is not None)
+text_to_process = file_text if (has_file and not user_prompt) else user_prompt
+img_bytes_to_process = file_img_bytes if (has_file and not user_prompt) else None
+
+if text_to_process or img_bytes_to_process:
+    active_key = st.session_state.api_key or os.getenv("OPENAI_API_KEY")
+    if not active_key:
+        st.error("Please configure your API Key in Settings (⚙️ bottom left of sidebar) before processing.")
     else:
-        # Save user prompt to history
-        st.session_state.messages.append({
+        # Update Chat Title based on first message
+        if not messages or current_chat["title"] == "New Chat":
+            if text_to_process:
+                preview_title = text_to_process.strip().split("\n")[0][:26]
+            else:
+                preview_title = f"Image ({uploaded_file.name[:20]})"
+            current_chat["title"] = preview_title if preview_title else "Transcript Analysis"
+
+        # Append User Message
+        if text_to_process:
+            user_msg = f"**Submitted Text:**\n\n```text\n{text_to_process[:400]}{'...' if len(text_to_process)>400 else ''}\n```"
+        else:
+            user_msg = f"📷 **Uploaded Image Document:** `{uploaded_file.name}`"
+
+        messages.append({
             "role": "user",
-            "content": f"**Analyzed Transcript:**\n\n```text\n{transcript_text[:300]}...\n```"
+            "content": user_msg
         })
 
         with st.spinner("Extracting action items..."):
             try:
                 result = process_transcript(
-                    transcript_text,
-                    api_key=user_api_key if user_api_key else None,
-                    base_url=user_base_url if user_base_url else None,
-                    model=user_model if user_model else None
+                    transcript_text=text_to_process,
+                    api_key=st.session_state.api_key if st.session_state.api_key else None,
+                    base_url=st.session_state.base_url if st.session_state.base_url else None,
+                    model=st.session_state.model_name if st.session_state.model_name else None,
+                    image_bytes=img_bytes_to_process,
+                    image_mime=file_img_mime if file_img_mime else "image/png"
                 )
-                
-                # Append assistant response
-                msg_id = len(st.session_state.messages)
-                st.session_state.messages.append({
+
+                messages.append({
                     "role": "assistant",
                     "content": "Analysis complete.",
                     "result": result,
-                    "id": msg_id
+                    "id": str(uuid.uuid4())
                 })
                 st.rerun()
 
             except Exception as e:
                 err_msg = str(e)
                 st.error(f"❌ Analysis Failed: {err_msg}")
-                st.info(
-                    "💡 **Troubleshooting Guide:**\n\n"
-                    "1. **Windows Quotes Issue**: In `cmd.exe`, using `set OPENAI_API_KEY=\"key\"` includes literal quotation marks in the environment variable. (Quotes are now automatically stripped by the app!).\n"
-                    "2. **OpenRouter Model Name**: OpenRouter requires a specific model ID (e.g. `meta-llama/llama-3.3-70b-instruct:free`, `google/gemini-2.0-flash-lite-001`, or `openai/gpt-4o-mini`).\n"
-                    "3. **Base URL**: Ensure Base URL is set to `https://openrouter.ai/api/v1` when using OpenRouter keys."
-                )

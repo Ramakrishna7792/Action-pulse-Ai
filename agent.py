@@ -14,9 +14,18 @@ def _clean_str(val: str) -> str:
         val = val.strip().strip('"').strip("'")
     return val if val else None
 
-def process_transcript(transcript_text: str, api_key: str = None, base_url: str = None, model: str = None) -> dict:
+import base64
+
+def process_transcript(
+    transcript_text: str = None, 
+    api_key: str = None, 
+    base_url: str = None, 
+    model: str = None,
+    image_bytes: bytes = None,
+    image_mime: str = "image/png"
+) -> dict:
     """
-    Processes a raw meeting transcript string using OpenAI/OpenRouter/compatible APIs
+    Processes a raw meeting transcript string or document/notes image using OpenAI/Groq/compatible APIs
     and extracts a structured summary along with assigned action items.
     """
     resolved_api_key = _clean_str(api_key) or _clean_str(os.getenv("OPENAI_API_KEY"))
@@ -30,7 +39,9 @@ def process_transcript(transcript_text: str, api_key: str = None, base_url: str 
     if resolved_api_key.startswith("gsk_"):
         if not resolved_base_url or "openrouter.ai" in resolved_base_url:
             resolved_base_url = "https://api.groq.com/openai/v1"
-        if not resolved_model or resolved_model in ["gpt-4o-mini", "openrouter/free"]:
+        if image_bytes:
+            resolved_model = "llama-3.2-11b-vision-preview"
+        elif not resolved_model or resolved_model in ["gpt-4o-mini", "openrouter/free"]:
             resolved_model = "llama-3.3-70b-versatile"
     elif resolved_api_key.startswith("sk-or-v1-"):
         if not resolved_base_url:
@@ -54,7 +65,7 @@ def process_transcript(transcript_text: str, api_key: str = None, base_url: str 
     
     system_prompt = (
         "You are an expert Executive Assistant specializing in extracting key insights and action items "
-        "from meeting transcripts. Analyze the provided meeting transcript carefully and produce a valid JSON object strictly formatted with:\n"
+        "from meeting transcripts and document images. Analyze the provided content carefully and produce a valid JSON object strictly formatted with:\n"
         "1. 'summary': A concise executive summary paragraph highlighting key decisions made, milestone dates, and major outcomes.\n"
         "2. 'action_items': A list of action item objects where each object contains:\n"
         "   - 'task': Clear, concise action item description.\n"
@@ -63,7 +74,14 @@ def process_transcript(transcript_text: str, api_key: str = None, base_url: str 
         "Do not include any text outside the JSON object."
     )
     
-    user_prompt = f"Here is the meeting transcript:\n\n---\n{transcript_text}\n---"
+    if image_bytes:
+        b64_img = base64.b64encode(image_bytes).decode("utf-8")
+        user_content = [
+            {"type": "text", "text": "Extract executive summary and action items from this meeting notes/document image:"},
+            {"type": "image_url", "image_url": {"url": f"data:{image_mime};base64,{b64_img}"}}
+        ]
+    else:
+        user_content = f"Here is the meeting transcript:\n\n---\n{transcript_text}\n---"
 
     # Try with json_object response format first, fallback without it if unsupported
     try:
@@ -73,7 +91,7 @@ def process_transcript(transcript_text: str, api_key: str = None, base_url: str 
                 response_format={"type": "json_object"},
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_content}
                 ],
                 temperature=0.2
             )
