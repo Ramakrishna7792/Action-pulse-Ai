@@ -37,37 +37,198 @@ if "search_query" not in st.session_state:
     st.session_state.search_query = ""
 
 # Inject Dynamic CSS Theme (Light / Dark)
-if st.session_state.theme_mode == "Light Theme":
+is_light_mode = (st.session_state.theme_mode == "Light Theme")
+
+if is_light_mode:
     theme_css = """
-    .stApp {
-        background-color: #f8fafc;
-        color: #0f172a;
-        font-family: 'Google Sans', 'Inter', sans-serif;
+    .stApp, 
+    [data-testid="stAppViewContainer"], 
+    [data-testid="stHeader"], 
+    [data-testid="stBottom"], 
+    [data-testid="stBottom"] > div {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        font-family: 'Google Sans', 'Inter', sans-serif !important;
     }
     [data-testid="stSidebar"] {
-        background-color: #ffffff;
-        border-right: 1px solid #e2e8f0;
+        background-color: #ffffff !important;
+        border-right: 1px solid #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] div, 
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        color: #0f172a !important;
+    }
+    div[data-baseweb="input"], input, textarea {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        -webkit-text-fill-color: #0f172a !important;
+    }
+    div[data-baseweb="input"] input::placeholder, textarea::placeholder {
+        color: #64748b !important;
+        -webkit-text-fill-color: #64748b !important;
     }
     .header-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
-        border: 1px solid #cbd5e1;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
         padding: 20px 24px;
         border-radius: 16px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
     }
-    .header-title { color: #0f172a; }
-    .header-subtitle { color: #64748b; }
+    .header-title { color: #0f172a !important; }
+    .header-subtitle { color: #475569 !important; }
     .summary-box {
-        background: rgba(59, 130, 246, 0.08);
-        border-left: 4px solid #2563eb;
+        background: #eff6ff !important;
+        border-left: 4px solid #2563eb !important;
         padding: 16px 20px;
         border-radius: 10px;
-        color: #1e3a8a;
+        color: #1e3a8a !important;
         font-size: 0.98rem;
         line-height: 1.6;
         margin-bottom: 16px;
     }
+    h1, h2, h3, h4, h5, h6, .stMarkdown, p, span, label {
+        color: #0f172a !important;
+    }
+    .recent-header { color: #64748b !important; }
+
+    /* Popover Body & Window (Settings Window) */
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] > div,
+    div[data-baseweb="popover"] [data-baseweb="menu"],
+    div[data-testid="stPopoverBody"],
+    [data-testid="stPopoverBody"] {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+    }
+    div[data-baseweb="popover"] *,
+    div[data-testid="stPopoverBody"] * {
+        color: #0f172a !important;
+    }
+    div[data-baseweb="popover"] [data-baseweb="tab"] p,
+    div[data-testid="stPopoverBody"] [data-baseweb="tab"] p {
+        color: #64748b !important;
+    }
+    div[data-baseweb="popover"] [aria-selected="true"] p,
+    div[data-testid="stPopoverBody"] [aria-selected="true"] p {
+        color: #2563eb !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="popover"] textarea,
+    div[data-testid="stPopoverBody"] textarea {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        -webkit-text-fill-color: #0f172a !important;
+    }
+    div[data-baseweb="popover"] button,
+    div[data-testid="stPopoverBody"] button,
+    [data-testid="stPopoverBody"] button {
+        background-color: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        border-radius: 8px !important;
+        -webkit-text-fill-color: #0f172a !important;
+    }
+    div[data-baseweb="popover"] button:hover,
+    div[data-testid="stPopoverBody"] button:hover,
+    [data-testid="stPopoverBody"] button:hover {
+        background-color: #e2e8f0 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    /* Expanders */
+    [data-testid="stExpander"] {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stExpander"] summary {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stExpander"] * {
+        color: #0f172a !important;
+    }
+
+    /* Chat Messages & Chat Input Box */
+    [data-testid="stChatMessage"] {
+        background-color: transparent !important;
+    }
+    div[data-testid="stChatInput"],
+    div[data-testid="stChatInput"] > div,
+    div[data-testid="stChatInput"] div[data-baseweb="base-input"],
+    div[data-testid="stChatInput"] div[data-baseweb="textarea"],
+    div[data-testid="stChatInputTextArea"],
+    textarea[data-testid="stChatInputTextArea"] {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+        -webkit-text-fill-color: #0f172a !important;
+    }
+    div[data-testid="stChatInput"] textarea::placeholder {
+        color: #64748b !important;
+        -webkit-text-fill-color: #64748b !important;
+    }
+    div[data-testid="stChatInput"] button {
+        color: #2563eb !important;
+    }
+
+    /* File Uploader Dropzone */
+    [data-testid="stFileUploaderDropzone"],
+    div[data-testid="stFileUploaderDropzone"] {
+        background-color: #f1f5f9 !important;
+        border: 2px dashed #cbd5e1 !important;
+        color: #0f172a !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stFileUploaderDropzone"] * {
+        color: #0f172a !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+    }
+
+    /* Code Blocks & Pre Blocks */
+    [data-testid="stCodeBlock"], code, pre {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        -webkit-text-fill-color: #0f172a !important;
+    }
+    [data-testid="stCodeBlock"] * {
+        color: #0f172a !important;
+        -webkit-text-fill-color: #0f172a !important;
+    }
+
+    /* Download Buttons & Secondary Form Action Buttons */
+    [data-testid="stDownloadButton"] button,
+    div[data-testid="stAppViewContainer"] button[kind="secondary"],
+    button[data-testid="baseButton-secondary"] {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stDownloadButton"] button:hover,
+    button[data-testid="baseButton-secondary"]:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+    }
+
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: transparent !important;
         border: none !important;
@@ -89,76 +250,222 @@ if st.session_state.theme_mode == "Light Theme":
         border-radius: 8px !important;
         padding: 6px 10px !important;
     }
-    .recent-header { color: #64748b; }
     """
 else:
     theme_css = """
-    .stApp {
-        background-color: #131314;
-        color: #e3e3e3;
-        font-family: 'Google Sans', 'Inter', sans-serif;
+    .stApp, 
+    [data-testid="stAppViewContainer"], 
+    [data-testid="stHeader"], 
+    [data-testid="stBottom"], 
+    [data-testid="stBottom"] > div {
+        background-color: #131314 !important;
+        color: #e3e3e3 !important;
+        font-family: 'Google Sans', 'Inter', sans-serif !important;
     }
     [data-testid="stSidebar"] {
-        background-color: #1e1f20;
-        border-right: 1px solid #2e2f31;
+        background-color: #1e1f20 !important;
+        border-right: 1px solid #2e2f31 !important;
+        color: #e3e3e3 !important;
+    }
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] div, 
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        color: #e3e3e3 !important;
+    }
+    div[data-baseweb="input"], input, textarea {
+        background-color: #1e1f20 !important;
+        color: #e3e3e3 !important;
+        border: 1px solid #374151 !important;
+        -webkit-text-fill-color: #e3e3e3 !important;
+    }
+    div[data-baseweb="input"] input::placeholder, textarea::placeholder {
+        color: #8e918f !important;
+        -webkit-text-fill-color: #8e918f !important;
     }
     .header-card {
-        background: linear-gradient(135deg, #1e2022 0%, #17181a 100%);
-        border: 1px solid #2e3034;
+        background: linear-gradient(135deg, #1e2022 0%, #17181a 100%) !important;
+        border: 1px solid #2e3034 !important;
         padding: 20px 24px;
         border-radius: 16px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
     }
-    .header-title { color: #f3f4f6; }
-    .header-subtitle { color: #9ca3af; }
+    .header-title { color: #f3f4f6 !important; }
+    .header-subtitle { color: #9ca3af !important; }
     .summary-box {
-        background: rgba(37, 99, 235, 0.15);
-        border-left: 4px solid #3b82f6;
+        background: rgba(37, 99, 235, 0.15) !important;
+        border-left: 4px solid #3b82f6 !important;
         padding: 16px 20px;
         border-radius: 10px;
-        color: #dbeafe;
+        color: #dbeafe !important;
         font-size: 0.98rem;
         line-height: 1.6;
         margin-bottom: 16px;
     }
-    [data-testid="stSidebar"] button[kind="secondary"] {
-        background-color: transparent !important;
-        border: none !important;
-        color: #c4c7c5 !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
-        font-size: 0.9rem !important;
-        border-radius: 8px !important;
-        padding: 6px 10px !important;
+    h1, h2, h3, h4, h5, h6, .stMarkdown, p, span, label {
+        color: #e3e3e3 !important;
     }
-    [data-testid="stSidebar"] button[kind="primary"] {
+    .recent-header { color: #8e918f !important; }
+
+    /* Popover Body & Window (Settings Window) */
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] > div,
+    div[data-baseweb="popover"] [data-baseweb="menu"],
+    div[data-testid="stPopoverBody"],
+    [data-testid="stPopoverBody"] {
+        background-color: #1e1f20 !important;
+        color: #e3e3e3 !important;
+        border: 1px solid #2e2f31 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    }
+    div[data-baseweb="popover"] *,
+    div[data-testid="stPopoverBody"] * {
+        color: #e3e3e3 !important;
+    }
+    div[data-baseweb="popover"] [data-baseweb="tab"] p,
+    div[data-testid="stPopoverBody"] [data-baseweb="tab"] p {
+        color: #8e918f !important;
+    }
+    div[data-baseweb="popover"] [aria-selected="true"] p,
+    div[data-testid="stPopoverBody"] [aria-selected="true"] p {
+        color: #60a5fa !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="popover"] button,
+    div[data-testid="stPopoverBody"] button,
+    [data-testid="stPopoverBody"] button {
+        background-color: #282a2c !important;
+        border: 1px solid #374151 !important;
+        color: #e3e3e3 !important;
+        border-radius: 8px !important;
+        -webkit-text-fill-color: #e3e3e3 !important;
+    }
+    div[data-baseweb="popover"] button:hover,
+    div[data-testid="stPopoverBody"] button:hover,
+    [data-testid="stPopoverBody"] button:hover {
+        background-color: #374151 !important;
+    }
+
+    /* Expanders */
+    [data-testid="stExpander"] {
+        background-color: #1e1f20 !important;
+        border: 1px solid #2e2f31 !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stExpander"] summary {
+        background-color: #282a2c !important;
+        color: #e3e3e3 !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stExpander"] * {
+        color: #e3e3e3 !important;
+    }
+
+    /* Chat Messages & Chat Input Box */
+    [data-testid="stChatMessage"] {
+        background-color: transparent !important;
+    }
+    div[data-testid="stChatInput"],
+    div[data-testid="stChatInput"] > div,
+    div[data-testid="stChatInput"] div[data-baseweb="base-input"],
+    div[data-testid="stChatInput"] div[data-baseweb="textarea"],
+    div[data-testid="stChatInputTextArea"],
+    textarea[data-testid="stChatInputTextArea"] {
+        background-color: #1e1f20 !important;
+        color: #e3e3e3 !important;
+        border-color: #374151 !important;
+        -webkit-text-fill-color: #e3e3e3 !important;
+    }
+    div[data-testid="stChatInput"] textarea::placeholder {
+        color: #8e918f !important;
+        -webkit-text-fill-color: #8e918f !important;
+    }
+    div[data-testid="stChatInput"] button {
+        color: #60a5fa !important;
+    }
+
+    /* File Uploader Dropzone */
+    [data-testid="stFileUploaderDropzone"],
+    div[data-testid="stFileUploaderDropzone"] {
+        background-color: #1e1f20 !important;
+        border: 2px dashed #374151 !important;
+        color: #e3e3e3 !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stFileUploaderDropzone"] * {
+        color: #e3e3e3 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
         background-color: #282a2c !important;
         border: 1px solid #374151 !important;
         color: #ffffff !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        padding: 6px 10px !important;
     }
-    .recent-header { color: #8e918f; }
+
+    /* Code Blocks & Pre Blocks */
+    [data-testid="stCodeBlock"], code, pre {
+        background-color: #1e1f20 !important;
+        color: #e3e3e3 !important;
+        border: 1px solid #2e2f31 !important;
+        border-radius: 8px !important;
+        -webkit-text-fill-color: #e3e3e3 !important;
+    }
+    [data-testid="stCodeBlock"] * {
+        color: #e3e3e3 !important;
+        -webkit-text-fill-color: #e3e3e3 !important;
+    }
+
+    /* Download Buttons */
+    [data-testid="stDownloadButton"] button {
+        background-color: #282a2c !important;
+        border: 1px solid #374151 !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stDownloadButton"] button:hover {
+        background-color: #374151 !important;
+    }
     """
 
 st.markdown(f"""
 <style>
     {theme_css}
 
+    /* Lock sidebar top-level container from scrolling */
+    section[data-testid="stSidebar"] {{
+        overflow: hidden !important;
+    }}
+
+    [data-testid="stSidebarUserContent"] {{
+        display: flex !important;
+        flex-direction: column !important;
+        height: calc(100vh - 24px) !important;
+        max-height: 100vh !important;
+        overflow: hidden !important;
+        justify-content: space-between !important;
+        padding-bottom: 12px !important;
+    }}
+
+    /* Only Recents container scrolls vertically */
+    div[data-testid="stVerticalBlockBorderWrapper"] {{
+        border-color: {'#cbd5e1' if is_light_mode else 'rgba(255, 255, 255, 0.08)'} !important;
+        border-radius: 12px !important;
+        max-height: calc(100vh - 330px) !important;
+        flex: 1 1 auto !important;
+    }}
+
     [data-testid="stSidebar"] button:hover {{
-        background-color: rgba(148, 163, 184, 0.15) !important;
+        background-color: {'#cbd5e1' if is_light_mode else 'rgba(148, 163, 184, 0.15)'} !important;
     }}
 
     /* Popover Menu Styling */
     [data-testid="stPopover"] button {{
         background: transparent !important;
         border: none !important;
-        color: #9ca3af !important;
+        color: {'#64748b' if is_light_mode else '#9ca3af'} !important;
         padding: 2px 6px !important;
     }}
     
@@ -167,7 +474,7 @@ st.markdown(f"""
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-top: 10px;
+        margin-top: 6px;
         margin-bottom: 4px;
     }}
 
@@ -342,9 +649,12 @@ for message in messages:
         if message["role"] == "user":
             if "full_text" in message:
                 full_txt = mask_sensitive_keys(message["full_text"])
+                c_bg = "#f8fafc" if is_light_mode else "#1a1b1e"
+                c_txt = "#0f172a" if is_light_mode else "#e3e3e3"
+                c_bdr = "#cbd5e1" if is_light_mode else "#2e3034"
                 with st.expander(f"📝 Submitted Input Text ({len(full_txt)} characters)", expanded=False):
                     st.markdown(
-                        f'<div style="white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.9rem; background-color: #1a1b1e; color: #e3e3e3; padding: 12px; border-radius: 8px; border: 1px solid #2e3034;">{full_txt}</div>',
+                        f'<div style="white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.9rem; background-color: {c_bg}; color: {c_txt}; padding: 12px; border-radius: 8px; border: 1px solid {c_bdr};">{full_txt}</div>',
                         unsafe_allow_html=True
                     )
             else:
@@ -358,18 +668,27 @@ for message in messages:
                 st.markdown("### ✅ Extracted Action Items")
                 action_items = data.get("action_items", [])
                 if action_items:
+                    r_border = "#e2e8f0" if is_light_mode else "rgba(255,255,255,0.08)"
+                    t_color = "#0f172a" if is_light_mode else "#e3e3e3"
+                    o_color = "#2563eb" if is_light_mode else "#60a5fa"
+                    d_color = "#d97706" if is_light_mode else "#f59e0b"
+                    
                     rows_html = ""
                     for item in action_items:
                         task = item.get("task", "N/A")
                         owner = item.get("owner", "Unassigned")
                         due = item.get("due_date", "No due date")
-                        rows_html += f"""<tr style="border-bottom: 1px solid rgba(255,255,255,0.08);"><td style="padding: 12px 16px; word-break: break-word; white-space: normal; line-height: 1.5; font-weight: 500;">{task}</td><td style="padding: 12px 16px; word-break: break-word; white-space: normal; color: #60a5fa; font-weight: 500;">{owner}</td><td style="padding: 12px 16px; word-break: break-word; white-space: normal; color: #f59e0b; font-weight: 500;">{due}</td></tr>"""
+                        rows_html += f"""<tr style="border-bottom: 1px solid {r_border};"><td style="padding: 12px 16px; word-break: break-word; white-space: normal; line-height: 1.5; font-weight: 500; color: {t_color};">{task}</td><td style="padding: 12px 16px; word-break: break-word; white-space: normal; color: {o_color}; font-weight: 500;">{owner}</td><td style="padding: 12px 16px; word-break: break-word; white-space: normal; color: {d_color}; font-weight: 500;">{due}</td></tr>"""
                     
+                    tbl_border = "#cbd5e1" if is_light_mode else "rgba(255,255,255,0.12)"
+                    th_bg = "#f1f5f9" if is_light_mode else "rgba(255,255,255,0.06)"
+                    th_text = "#475569" if is_light_mode else "#9ca3af"
+
                     table_html = textwrap.dedent(f"""
-                    <div style="border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden; margin-bottom: 16px;">
+                    <div style="border: 1px solid {tbl_border}; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background-color: {'#ffffff' if is_light_mode else 'transparent'};">
                     <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
                     <thead>
-                    <tr style="background: rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.12); color: #9ca3af; font-size: 0.85rem; text-transform: uppercase;">
+                    <tr style="background: {th_bg}; border-bottom: 1px solid {tbl_border}; color: {th_text}; font-size: 0.85rem; text-transform: uppercase;">
                     <th style="padding: 12px 16px; width: 55%;">Task Description</th>
                     <th style="padding: 12px 16px; width: 25%;">Assignee / Owner</th>
                     <th style="padding: 12px 16px; width: 20%;">Due Date</th>
