@@ -145,12 +145,52 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # API Key check status
-    api_key_set = bool(os.getenv("OPENAI_API_KEY"))
-    if api_key_set:
-        st.sidebar.success("✅ OPENAI_API_KEY detected")
+    # API Configuration in Sidebar
+    st.subheader("🔑 API Settings")
+    
+    def _clean(v):
+        return v.strip().strip('"').strip("'") if v else ""
+
+    env_key = _clean(os.getenv("OPENAI_API_KEY", ""))
+    user_api_key = st.text_input(
+        "API Key (OpenAI / OpenRouter / Groq):",
+        type="password",
+        value=env_key,
+        help="Paste your API key here (e.g. Groq key gsk_... or OpenRouter key sk-or-v1-...)."
+    )
+    
+    # Auto-detect defaults based on key type
+    default_base = ""
+    default_model = "gpt-4o-mini"
+    if user_api_key.startswith("gsk_"):
+        default_base = "https://api.groq.com/openai/v1"
+        default_model = "llama-3.3-70b-versatile"
+    elif user_api_key.startswith("sk-or-v1-"):
+        default_base = "https://openrouter.ai/api/v1"
+        default_model = "meta-llama/llama-3.3-70b-instruct:free"
+
+    env_base_url = _clean(os.getenv("OPENAI_BASE_URL", "")) or default_base
+    user_base_url = st.text_input(
+        "Base URL (Optional):",
+        value=env_base_url,
+        placeholder="https://api.groq.com/openai/v1",
+        help="Custom API base URL (e.g., https://api.groq.com/openai/v1 or https://openrouter.ai/api/v1)."
+    )
+
+    env_model = _clean(os.getenv("LLM_MODEL", "")) or _clean(os.getenv("OPENAI_MODEL", "")) or default_model
+    user_model = st.text_input(
+        "Model Name:",
+        value=env_model,
+        placeholder="llama-3.3-70b-versatile",
+        help="Specify the model ID (e.g. llama-3.3-70b-versatile, meta-llama/llama-3.3-70b-instruct:free, gpt-4o-mini)."
+    )
+
+    if user_api_key:
+        st.sidebar.success("✅ API Key configured")
     else:
-        st.sidebar.warning("⚠️ OPENAI_API_KEY missing. Set it in your environment variables.")
+        st.sidebar.warning("⚠️ API Key missing. Enter it above or set in environment.")
+
+    st.markdown("---")
 
     if st.button("Clear Chat History", type="secondary", use_container_width=True):
         st.session_state.messages = []
@@ -222,8 +262,8 @@ submit_clicked = st.button("⚡ Process & Extract Action Items", type="primary",
 if submit_clicked:
     if not transcript_text.strip():
         st.warning("Please provide a meeting transcript first.")
-    elif not os.getenv("OPENAI_API_KEY"):
-        st.error("Please set your OPENAI_API_KEY environment variable before processing.")
+    elif not user_api_key and not os.getenv("OPENAI_API_KEY"):
+        st.error("Please enter your API key in the sidebar or set the OPENAI_API_KEY environment variable.")
     else:
         # Save user prompt to history
         st.session_state.messages.append({
@@ -233,7 +273,12 @@ if submit_clicked:
 
         with st.spinner("Extracting action items..."):
             try:
-                result = process_transcript(transcript_text)
+                result = process_transcript(
+                    transcript_text,
+                    api_key=user_api_key if user_api_key else None,
+                    base_url=user_base_url if user_base_url else None,
+                    model=user_model if user_model else None
+                )
                 
                 # Append assistant response
                 msg_id = len(st.session_state.messages)
@@ -246,4 +291,11 @@ if submit_clicked:
                 st.rerun()
 
             except Exception as e:
-                st.error(f"An error occurred during analysis: {str(e)}")
+                err_msg = str(e)
+                st.error(f"❌ Analysis Failed: {err_msg}")
+                st.info(
+                    "💡 **Troubleshooting Guide:**\n\n"
+                    "1. **Windows Quotes Issue**: In `cmd.exe`, using `set OPENAI_API_KEY=\"key\"` includes literal quotation marks in the environment variable. (Quotes are now automatically stripped by the app!).\n"
+                    "2. **OpenRouter Model Name**: OpenRouter requires a specific model ID (e.g. `meta-llama/llama-3.3-70b-instruct:free`, `google/gemini-2.0-flash-lite-001`, or `openai/gpt-4o-mini`).\n"
+                    "3. **Base URL**: Ensure Base URL is set to `https://openrouter.ai/api/v1` when using OpenRouter keys."
+                )
