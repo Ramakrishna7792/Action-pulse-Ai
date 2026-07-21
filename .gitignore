@@ -1,0 +1,28 @@
+# Streamlit (Crucial: Protects secrets and local configs)
+.streamlit/
+
+# Virtual Environments & Environment Files
+venv/
+env/
+ENV/
+.env
+.env.*
+
+# Python Cache & Compiled Files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Agent Generated Outputs
+output.json
+action_items.json
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# IDE & Editor Settings
+.vscode/
+.idea/
