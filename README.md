@@ -147,6 +147,19 @@ Alex: Great. I will update the executive board with the release timeline by tomo
   ]
 }
 ```
+## 📸 Application Screenshots
+
+### 1. Main Dashboard Overview
+![ActionPulse AI Dashboard](assets/dashboard.png)
+
+### 2. Transcript & Text Ingestion
+![Input Text Ingestion](assets/input_text.png)
+
+### 3. Executive Summary & Action Items Table
+![Extracted Action Items](assets/action_items.png)
+
+### 4. Validated JSON Export Deliverable
+![Structured JSON Output](assets/json.png)
 
 ---
 
