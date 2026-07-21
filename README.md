@@ -110,7 +110,11 @@ Below is an example of the structured JSON schema returned by ActionPulse AI:
 - **Rationale:** Typical meeting transcripts range between 500 and 5,000 tokens, which easily fit inside `gpt-4o-mini`'s 128k context window.
 - **Tradeoffs:** Performing Retrieval-Augmented Generation (RAG) or vector chunking on meeting transcripts risks splitting speaker turns or separating task assignments from their contextual due dates. Direct context injection passes the complete conversation flow to the LLM, preserving crucial relational context.
 
-### 3. Future Improvements
+### 3. In-Memory State Management vs. Database Persistence
+- **Rationale:** The Web UI uses Streamlit's ephemeral `st.session_state` rather than an external database (e.g., SQLite/PostgreSQL). This intentional design choice guarantees a zero-configuration, lightweight deployment for reviewers without requiring local database migrations or storage permissions. 
+- **Future Improvement:** Integrate a lightweight SQLite backend to persist user conversation history across page refreshes.
+
+### 4. Future Improvements
 - **Integration Webhooks:** Automated triggers pushing extracted tasks directly to **Slack**, **Trello**, **Jira**, or **Asana**.
 - **Calendar Integration:** Syncing extracted due dates automatically to **Google Calendar** or **Outlook**.
 - **Multi-Speaker Diarization:** Integration with Whisper AI / AssemblyAI speech-to-text APIs to convert raw meeting audio directly into transcripts.

@@ -320,16 +320,33 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+import textwrap
+
+if "processed_files" not in st.session_state:
+    st.session_state.processed_files = set()
+
 # 2. Render Active Chat Messages
 messages = current_chat["messages"]
+
+import re
+
+def mask_sensitive_keys(text: str) -> str:
+    if not text:
+        return ""
+    text = re.sub(r'gsk_[A-Za-z0-9_]+', '[REDACTED_API_KEY]', text)
+    text = re.sub(r'sk-[A-Za-z0-9_-]+', '[REDACTED_API_KEY]', text)
+    return text
 
 for message in messages:
     with st.chat_message(message["role"]):
         if message["role"] == "user":
             if "full_text" in message:
-                full_txt = message["full_text"]
+                full_txt = mask_sensitive_keys(message["full_text"])
                 with st.expander(f"📝 Submitted Input Text ({len(full_txt)} characters)", expanded=False):
-                    st.code(full_txt, language="text")
+                    st.markdown(
+                        f'<div style="white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.9rem; background-color: #1a1b1e; color: #e3e3e3; padding: 12px; border-radius: 8px; border: 1px solid #2e3034;">{full_txt}</div>',
+                        unsafe_allow_html=True
+                    )
             else:
                 st.markdown(message["content"])
         else:
@@ -341,17 +358,30 @@ for message in messages:
                 st.markdown("### ✅ Extracted Action Items")
                 action_items = data.get("action_items", [])
                 if action_items:
-                    df = pd.DataFrame(action_items)
-                    st.dataframe(
-                        df, 
-                        column_config={
-                            "task": st.column_config.TextColumn("Task Description", width="large"),
-                            "owner": st.column_config.TextColumn("Assignee / Owner", width="medium"),
-                            "due_date": st.column_config.TextColumn("Due Date", width="small"),
-                        },
-                        hide_index=True,
-                        use_container_width=True
-                    )
+                    rows_html = ""
+                    for item in action_items:
+                        task = item.get("task", "N/A")
+                        owner = item.get("owner", "Unassigned")
+                        due = item.get("due_date", "No due date")
+                        rows_html += f"""<tr style="border-bottom: 1px solid rgba(255,255,255,0.08);"><td style="padding: 12px 16px; word-break: break-word; white-space: normal; line-height: 1.5; font-weight: 500;">{task}</td><td style="padding: 12px 16px; word-break: break-word; white-space: normal; color: #60a5fa; font-weight: 500;">{owner}</td><td style="padding: 12px 16px; word-break: break-word; white-space: normal; color: #f59e0b; font-weight: 500;">{due}</td></tr>"""
+                    
+                    table_html = textwrap.dedent(f"""
+                    <div style="border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden; margin-bottom: 16px;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                    <thead>
+                    <tr style="background: rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.12); color: #9ca3af; font-size: 0.85rem; text-transform: uppercase;">
+                    <th style="padding: 12px 16px; width: 55%;">Task Description</th>
+                    <th style="padding: 12px 16px; width: 25%;">Assignee / Owner</th>
+                    <th style="padding: 12px 16px; width: 20%;">Due Date</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {rows_html}
+                    </tbody>
+                    </table>
+                    </div>
+                    """).strip()
+                    st.markdown(table_html, unsafe_allow_html=True)
 
                     json_str = json.dumps(data, indent=2)
                     st.download_button(
@@ -385,27 +415,31 @@ def extract_file_data(uploaded_file):
     return uploaded_file.read().decode("utf-8", errors="ignore"), None, None
 
 # 4. File Attachment Expander
+file_submit_clicked = False
+file_text, file_img_bytes, file_img_mime = None, None, None
+
 with st.expander("➕ Upload File (.txt, .pdf, .docx, .png, .jpg)", expanded=False):
     uploaded_file = st.file_uploader(
         "Attach meeting document, transcript, or notes image:",
         type=["txt", "md", "pdf", "docx", "png", "jpg", "jpeg", "webp"],
         key=f"file_up_{st.session_state.current_chat_id}"
     )
-    file_text, file_img_bytes, file_img_mime = None, None, None
     if uploaded_file is not None:
-        file_text, file_img_bytes, file_img_mime = extract_file_data(uploaded_file)
-        st.success(f"Attached `{uploaded_file.name}`. Press Enter or click submit in the chat box below.")
+        file_sig = f"{uploaded_file.name}_{uploaded_file.size}"
+        st.info(f"File `{uploaded_file.name}` attached.")
+        if st.button("⚡ Process & Extract Action Items from Attached File", type="primary", key=f"btn_file_sub_{st.session_state.current_chat_id}"):
+            file_text, file_img_bytes, file_img_mime = extract_file_data(uploaded_file)
+            file_submit_clicked = True
+            st.session_state.processed_files.add(file_sig)
 
 # 5. Gemini-Style Chat Input Box
 user_prompt = st.chat_input("Enter a meeting transcript, raw notes, or paragraph text...")
 
-has_file = (file_text is not None or file_img_bytes is not None)
-text_to_process = file_text if (has_file and not user_prompt) else user_prompt
-img_bytes_to_process = file_img_bytes if (has_file and not user_prompt) else None
+# Determine payload
+text_to_process = file_text if file_submit_clicked else user_prompt
+img_bytes_to_process = file_img_bytes if file_submit_clicked else None
 
 if text_to_process or img_bytes_to_process:
-    active_key = os.getenv("OPENAI_API_KEY") or os.getenv("GROQ_API_KEY")
-    
     # Update Chat Title based on first message
     if not messages or current_chat["title"] == "New Chat":
         if text_to_process:
@@ -418,7 +452,7 @@ if text_to_process or img_bytes_to_process:
     if text_to_process:
         user_msg = {
             "role": "user",
-            "content": f"📝 **Submitted Input Text** ({len(text_to_process)} characters)",
+            "content": f"📝 Submitted Input Text ({len(text_to_process)} characters)",
             "full_text": text_to_process
         }
     else:
